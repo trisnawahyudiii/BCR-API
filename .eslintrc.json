@@ -1,0 +1,26 @@
+{
+    "env": {
+        "browser": true,
+        "commonjs": true,
+        "es2021": true
+    },
+    "extends": "eslint:recommended",
+    "overrides": [
+    ],
+    "parserOptions": {
+        "ecmaVersion": "latest"
+    },
+    "rules": {
+        "import/no-dynamic-require": "off",
+        "global-require": "off",
+        "no-unused-vars": "off",
+        "linebreak-style": 0,
+        "no-useless-escape": "off",
+        "no-return-await": "off",
+        "no-self-assign": "off",
+        "no-undef": "off",
+        "no-unreachable": "off",
+        "arrow-body-style": "off",
+        "no-restricted-globals": "off"
+    }
+}

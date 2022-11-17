@@ -1,0 +1,8 @@
+#!/usr/bin/env node
+
+const app = require("../app");
+const { PORT = 8000 } = process.env;
+
+app.listen(PORT, "0.0.0.0", () => {
+    console.log("Listening on port http://0.0.0.0:" + PORT);
+});
