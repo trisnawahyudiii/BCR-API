@@ -1,8 +1,8 @@
 const { Op } = require("sequelize");
 const dayjs = require("dayjs");
-const CarController = require("../CarController");
-const { Car, UserCar } = require("../../models");
-const { CarAlreadyRentedError } = require("../../errors");
+const CarController = require("../app/controllers/CarController");
+const { Car, UserCar } = require("../app/models");
+const { CarAlreadyRentedError } = require("../app/errors");
 
 describe("Car Controller", () => {
     describe("Constructor", () => {
@@ -19,7 +19,7 @@ describe("Car Controller", () => {
     });
 
     const mockCarData = {
-        name: "Mazda RX-",
+        name: "Mazda RX-1",
         price: "300000",
         size: "SMALL",
         image: "https://source.unsplash.com/500x500",
@@ -347,8 +347,6 @@ describe("Car Controller", () => {
                 },
             };
 
-            const error = new CarAlreadyRentedError(mockCarData);
-
             const carController = new CarController({
                 carModel: mockCarModel,
                 userCarModel: mockUserCarModel,
@@ -358,6 +356,181 @@ describe("Car Controller", () => {
             await carController.handleRentCar(mockRequest, mockResponse, mockNext);
 
             expect(mockNext).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("handleUpdateCar Funtion", () => {
+        const mockCarData = new Car({
+            id: 1,
+            name: "Mazda RX-1",
+            price: "300000",
+            size: "SMALL",
+            image: "https://source.unsplash.com/500x500",
+            isCurrentlyRented: false,
+            createdAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+            updatedAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+        });
+
+        const mockUserCarModel = {};
+
+        const mockNext = jest.fn();
+
+        // response 200
+        it("should update the selected car data and should response with 200 as status code ", async () => {
+            const mockRequest = {
+                params: {
+                    id: 1,
+                },
+
+                body: {
+                    name: "update car data",
+                    price: "1000000",
+                    size: "MEDIUM",
+                    image: "updated image",
+                },
+            };
+
+            const mockCarModel = {
+                findByPk: jest.fn().mockReturnValue(mockCarData),
+                update: jest.fn().mockReturnValue(mockRequest.body),
+            };
+
+            const carController = new CarController({
+                carModel: mockCarModel,
+                userCarModel: mockUserCarModel,
+                dayjs,
+            });
+
+            await carController.handleUpdateCar(mockRequest, mockResponse, mockNext);
+
+            expect(mockCarModel.findByPk).toHaveBeenCalledWith(mockRequest.params.id);
+            expect(mockCarModel.update).toHaveBeenCalledWith(
+                {
+                    ...mockRequest.body,
+                    isCurrentlyRented: false,
+                },
+                {
+                    where: {
+                        id: mockRequest.params.id,
+                    },
+                }
+            );
+
+            expect(mockResponse.status).toHaveBeenCalledWith(200);
+            expect(mockResponse.json).toHaveBeenCalledWith({
+                message: "Data Updated Successfully",
+            });
+        });
+
+        // response 422
+        it("should throw an error and should response with 422 as status code", async () => {
+            const mockRequest = {
+                params: {
+                    id: 1,
+                },
+
+                body: {
+                    name: "update car data",
+                    price: "1000000",
+                    size: "MEDIUM",
+                    image: "updated image",
+                },
+            };
+
+            const mockCarModel = {
+                findByPk: jest.fn().mockReturnValue(mockCarData),
+                update: jest.fn().mockReturnValue(null),
+            };
+
+            const carController = new CarController({
+                carModel: mockCarModel,
+                userCarModel: mockUserCarModel,
+                dayjs,
+            });
+
+            await carController.handleUpdateCar(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(422);
+            expect(mockResponse.json).toHaveBeenCalledWith({
+                error: {
+                    name: expect.any(String),
+                    message: expect.any(String),
+                },
+            });
+        });
+    });
+
+    describe("handleDeleteCar Function", () => {
+        const mockCarData = new Car({
+            id: 1,
+            name: "Mazda RX-1",
+            price: "300000",
+            size: "SMALL",
+            image: "https://source.unsplash.com/500x500",
+            isCurrentlyRented: false,
+            createdAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+            updatedAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+        });
+
+        // response 204
+        it("should return a success message and should response with 204 as status code ", async () => {
+            const mockCarModel = {
+                destroy: jest.fn().mockReturnValue(mockCarData),
+            };
+
+            const mockUserCarModel = {};
+
+            const mockRequest = {
+                params: {
+                    id: 1,
+                },
+            };
+
+            const carController = new CarController({
+                carModel: mockCarModel,
+                userCarModel: mockUserCarModel,
+                dayjs,
+            });
+
+            await carController.handleDeleteCar(mockRequest, mockResponse);
+
+            expect(mockCarModel.destroy).toHaveBeenCalledWith({ where: { id: mockRequest.params.id } });
+            expect(mockResponse.status).toHaveBeenCalledWith(204);
+            expect(mockResponse.json).toHaveBeenCalledWith({
+                message: "delete Successfull",
+            });
+        });
+
+        // response 422
+        it("should throw an error and should response with 422 as status code ", async () => {
+            const mockCarModel = {
+                destroy: jest.fn().mockReturnValue(null),
+            };
+
+            const mockUserCarModel = {};
+
+            const mockRequest = {
+                params: {
+                    id: 1,
+                },
+            };
+
+            const carController = new CarController({
+                carModel: mockCarModel,
+                userCarModel: mockUserCarModel,
+                dayjs,
+            });
+
+            await carController.handleDeleteCar(mockRequest, mockResponse);
+
+            expect(mockCarModel.destroy).toHaveBeenCalledWith({ where: { id: mockRequest.params.id } });
+            expect(mockResponse.status).toHaveBeenCalledWith(422);
+            expect(mockResponse.json).toHaveBeenCalledWith({
+                error: {
+                    name: expect.any(String),
+                    message: expect.any(String),
+                },
+            });
         });
     });
 });

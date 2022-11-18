@@ -1,5 +1,5 @@
-const ApplicationController = require("../ApplicationController");
-const { NotFoundError } = require("../../errors");
+const ApplicationController = require("../app/controllers/ApplicationController");
+const { NotFoundError } = require("../app/errors");
 
 describe("Application Controller", () => {
     const mockResponse = {

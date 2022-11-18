@@ -1,9 +1,9 @@
-const AuthenticationController = require("../AuthenticationController");
-const { User, Role } = require("../../models");
+const AuthenticationController = require("../app/controllers/AuthenticationController");
+const { User, Role } = require("../app/models");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const { WrongPasswordError, EmailNotRegisteredError, EmailAlreadyTakenError, RecordNotFoundError } = require("../../errors");
-const { JWT_SIGNATURE_KEY } = require("../../../config/application");
+const { WrongPasswordError, EmailNotRegisteredError, EmailAlreadyTakenError, RecordNotFoundError } = require("../app/errors");
+const { JWT_SIGNATURE_KEY } = require("../config/application");
 
 describe("Authentication Controller", () => {
     describe("Constructor", () => {
@@ -45,25 +45,7 @@ describe("Authentication Controller", () => {
             jwt,
         });
 
-        it("Should throw insuficentAccess Error with 401 as status code and should response ", () => {
-            const mockRequest = {
-                headers: {
-                    authorization: "Bearer",
-                },
-            };
-
-            authController.authorize("CUSTOMER")(mockRequest, mockResponse, mockNext);
-
-            expect(mockResponse.status).toHaveBeenCalledWith(401);
-            expect(mockResponse.json).toHaveBeenCalledWith({
-                error: {
-                    name: "JsonWebTokenError",
-                    message: "jwt must be provided",
-                    details: null,
-                },
-            });
-        });
-
+        // success authorization
         it("Should call the next() function 1 times ", () => {
             const mockRequest = {
                 headers: {
@@ -86,6 +68,61 @@ describe("Authentication Controller", () => {
             authController.authorize("CUSTOMER")(mockRequest, mockResponse, mockNext);
 
             expect(mockNext).toBeCalledTimes(1);
+        });
+
+        // 401 response when jwt is not provided
+        it("Should throw insuficentAccess Error with 401 as status code and should response ", () => {
+            const mockRequest = {
+                headers: {
+                    authorization: "Bearer",
+                },
+            };
+
+            authController.authorize("CUSTOMER")(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(401);
+            expect(mockResponse.json).toHaveBeenCalledWith({
+                error: {
+                    name: "JsonWebTokenError",
+                    message: "jwt must be provided",
+                    details: null,
+                },
+            });
+        });
+
+        // 401 response when access denied
+        it("Should throw insuficentAccess Error with 401 as status code and should response ", () => {
+            const mockRequest = {
+                headers: {
+                    authorization: `Bearer ${jwt.sign(
+                        {
+                            id: mockUser.id,
+                            name: mockUser.name,
+                            email: mockUser.email,
+                            image: mockUser.image,
+                            role: {
+                                id: mockRole.id,
+                                name: mockRole.name,
+                            },
+                        },
+                        JWT_SIGNATURE_KEY
+                    )}`,
+                },
+            };
+
+            authController.authorize("Admin")(mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(401);
+            expect(mockResponse.json).toHaveBeenCalledWith({
+                error: {
+                    name: "Error",
+                    message: "Access forbidden!",
+                    details: {
+                        role: "CUSTOMER",
+                        reason: "CUSTOMER is not allowed to perform this operation.",
+                    },
+                },
+            });
         });
     });
 

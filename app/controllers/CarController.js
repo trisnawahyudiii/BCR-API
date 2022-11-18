@@ -1,6 +1,6 @@
 const { Op } = require("sequelize");
 const ApplicationController = require("./ApplicationController");
-const { CarAlreadyRentedError } = require("../errors");
+const { CarAlreadyRentedError, RecordNotFoundError } = require("../errors");
 
 class CarController extends ApplicationController {
     constructor({ carModel, userCarModel, dayjs }) {
@@ -98,50 +98,69 @@ class CarController extends ApplicationController {
         const car = await this.getCarFromRequest(req);
         const { name, price, size, image } = req.body;
 
-        await car
-            .update({
-                name,
-                price,
-                size,
-                image,
-                isCurrentlyRented: false,
-            })
-            .then(() => {
-                res.status(200).json({
-                    message: "Data Updated Successfully",
-                });
-            })
-            .catch((err) => {
-                res.status(422).json({
-                    error: {
-                        name: err.name,
-                        message: err.message,
+        try {
+            const updatedCar = this.carModel.update(
+                {
+                    name,
+                    price,
+                    size,
+                    image,
+                    isCurrentlyRented: false,
+                },
+                {
+                    where: {
+                        id: car.id,
                     },
-                });
+                }
+            );
+
+            if (!updatedCar) {
+                throw new Error();
+            }
+
+            res.status(200).json({
+                message: "Data Updated Successfully",
             });
+        } catch (err) {
+            res.status(422).json({
+                error: {
+                    name: err.name,
+                    message: err.message,
+                },
+            });
+        }
     };
 
     handleDeleteCar = async (req, res) => {
         const id = req.params.id;
-        this.carModel
-            .destroy({ where: { id } })
-            .then(() => {
-                res.status(204).json({
-                    message: "delete Successfull",
-                });
-            })
-            .catch((err) => {
-                res.status(422).json({
-                    error: {
-                        name: err.name,
-                        message: err.message,
-                    },
-                });
+
+        try {
+            const deleted = this.carModel.destroy({
+                where: {
+                    id: id,
+                },
             });
+
+            if (!deleted) {
+                throw new Error();
+            }
+
+            res.status(204).json({
+                message: "delete Successfull",
+            });
+        } catch (err) {
+            res.status(422).json({
+                error: {
+                    name: err.name,
+                    message: err.message,
+                },
+            });
+        }
     };
 
-    getCarFromRequest(req) {
-        return this.carModel.findByPk(req.params.id);
+    async getCarFromRequest(req) {
+        const car = await this.carModel.findByPk(req.params.id);
+        return car;
     }
 
     getListQueryFromRequest(req) {
