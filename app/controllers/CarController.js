@@ -1,5 +1,6 @@
 const { Op } = require("sequelize");
 const ApplicationController = require("./ApplicationController");
+const { CarAlreadyRentedError } = require("../errors");
 
 class CarController extends ApplicationController {
     constructor({ carModel, userCarModel, dayjs }) {
@@ -75,6 +76,7 @@ class CarController extends ApplicationController {
 
             if (!!activeRent) {
                 const err = new CarAlreadyRentedError(car);
+
                 res.status(422).json(err);
                 return;
             }

@@ -200,9 +200,9 @@ describe("Car Controller", () => {
         });
     });
 
-    describe('handleRentCar Funtion', () => {
+    describe("handleRentCar Funtion", () => {
         const mockCarData = new Car({
-            id: 1,
+            // id: 1,
             name: "Mazda RX-1",
             price: "300000",
             size: "SMALL",
@@ -212,8 +212,152 @@ describe("Car Controller", () => {
             updatedAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
         });
 
-        const mockCarModel = {
-            
-        }
+        const mockUserCarData = new UserCar({
+            userId: 1,
+            carId: 1,
+            rentStartedAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+            rentEndedAt: dayjs().add(1, "day").format("YYYY-MM-DD HH:mm:ss"),
+        });
+
+        const mockNext = jest.fn();
+
+        // response 201
+        it("should return a valid userCar data and should response with 201 as status code ", async () => {
+            const mockCarModel = {
+                findByPk: jest.fn().mockReturnValue(mockCarData),
+            };
+
+            const mockUserCarModel = {
+                findOne: jest.fn().mockReturnValue(null),
+                create: jest.fn().mockReturnValue(mockUserCarData),
+            };
+
+            const mockRequest = {
+                body: {
+                    rentStartedAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+                    rentEndedAt: dayjs().add(1, "day").format("YYYY-MM-DD HH:mm:ss"),
+                },
+                params: {
+                    id: 1,
+                },
+                user: {
+                    id: 1,
+                },
+            };
+
+            const carController = new CarController({
+                carModel: mockCarModel,
+                userCarModel: mockUserCarModel,
+                dayjs,
+            });
+
+            await carController.handleRentCar(mockRequest, mockResponse, mockNext);
+
+            expect(mockCarModel.findByPk).toHaveBeenCalledWith(mockRequest.params.id);
+            expect(mockUserCarModel.findOne).toHaveBeenCalledWith({
+                where: {
+                    carId: mockCarData.id,
+                    rentStartedAt: {
+                        [Op.gte]: mockRequest.body.rentStartedAt,
+                    },
+                    rentEndedAt: {
+                        [Op.lte]: mockRequest.body.rentEndedAt,
+                    },
+                },
+            });
+            expect(mockUserCarModel.create).toHaveBeenCalledWith({
+                userId: mockRequest.user.id,
+                carId: mockCarData.id,
+                rentStartedAt: mockRequest.body.rentStartedAt,
+                rentEndedAt: mockRequest.body.rentEndedAt,
+            });
+
+            expect(mockResponse.status).toHaveBeenCalledWith(201);
+            expect(mockResponse.json).toHaveBeenCalledWith(mockUserCarData);
+        });
+
+        // 422 response
+        it("should throw CarAlreadyRentedError and should response with 422 as status code ", async () => {
+            const mockCarModel = {
+                findByPk: jest.fn().mockReturnValue(mockCarData),
+            };
+
+            const mockUserCarModel = {
+                findOne: jest.fn().mockReturnValue(mockUserCarData),
+            };
+
+            const mockRequest = {
+                body: {
+                    rentStartedAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+                    rentEndedAt: dayjs().add(1, "day").format("YYYY-MM-DD HH:mm:ss"),
+                },
+                params: {
+                    id: 1,
+                },
+                user: {
+                    id: 1,
+                },
+            };
+
+            const error = new CarAlreadyRentedError(mockCarData);
+
+            const carController = new CarController({
+                carModel: mockCarModel,
+                userCarModel: mockUserCarModel,
+                dayjs,
+            });
+
+            await carController.handleRentCar(mockRequest, mockResponse, mockNext);
+
+            expect(mockCarModel.findByPk).toHaveBeenCalledWith(mockRequest.params.id);
+            expect(mockUserCarModel.findOne).toHaveBeenCalledWith({
+                where: {
+                    carId: mockCarData.id,
+                    rentStartedAt: {
+                        [Op.gte]: mockRequest.body.rentStartedAt,
+                    },
+                    rentEndedAt: {
+                        [Op.lte]: mockRequest.body.rentEndedAt,
+                    },
+                },
+            });
+
+            expect(mockResponse.status).toHaveBeenCalledWith(422);
+            expect(mockResponse.json).toHaveBeenCalledWith(error);
+        });
+
+        // 422 response with catcs
+        it("should throw CarAlreadyRentedError and should response with 422 as status code ", async () => {
+            const mockCarModel = {};
+
+            const mockUserCarModel = {
+                findOne: jest.fn().mockReturnValue(mockUserCarData),
+            };
+
+            const mockRequest = {
+                body: {
+                    rentStartedAt: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+                    rentEndedAt: dayjs().add(1, "day").format("YYYY-MM-DD HH:mm:ss"),
+                },
+                params: {
+                    id: 1,
+                },
+                user: {
+                    id: 1,
+                },
+            };
+
+            const error = new CarAlreadyRentedError(mockCarData);
+
+            const carController = new CarController({
+                carModel: mockCarModel,
+                userCarModel: mockUserCarModel,
+                dayjs,
+            });
+
+            await carController.handleRentCar(mockRequest, mockResponse, mockNext);
+
+            expect(mockNext).toHaveBeenCalledTimes(1);
+        });
     });
 });
